@@ -49,10 +49,14 @@ app.get('/admin', (req, res) => {
   });
 });
 
-// 在庫を補充する処理など
+// 在庫を補充する処理
 app.post('/admin/restock/:id', (req, res) => {
-  // ここに在庫を増やすUpdate文を書く
-  // 処理が終わったら res.redirect("/admin");
+  const itemId = req.params.id;
+  // 在庫を+10する
+  db.run('UPDATE items SET stock = stock + 10 WHERE id = ?', [itemId], (err) => {
+    // 処理が終わったら管理者画面に戻る
+    res.redirect('/admin');
+  });
 });
 
 // --- 【Aさん担当エリア】（購入画面） ---
@@ -60,7 +64,6 @@ app.post('/admin/restock/:id', (req, res) => {
 app.get('/', (req, res) => {
   db.all('SELECT * FROM items', (err, rows) => {
     // views/index.ejs を作成して、rowsを渡す
-    // 在庫が0のものは赤くするなどの表示処理はEJS側でやる
     res.render('index', { items: rows });
   });
 });
@@ -68,19 +71,48 @@ app.get('/', (req, res) => {
 // 購入処理（一番難しいところ！）
 app.post('/purchase/:id', (req, res) => {
   const itemId = req.params.id;
-  const inputMoney = req.body.money; // フォームから送られた投入金額
+  const inputMoney = parseInt(req.body.money); // 数字に変換
 
   // 1. DBからその商品の価格と在庫を取得
-  // 2. 「投入金額 >= 価格」かつ「在庫 > 0」かチェック
-  // 3. OKなら在庫を減らす (UPDATE items ...)
-  // 4. 売上テーブルに記録 (INSERT INTO sales ...) ← Cさんと連携
-  // 5. お釣りを計算して結果画面へ
+  db.get('SELECT * FROM items WHERE id = ?', [itemId], (err, item) => {
+    if (err || !item) {
+      return res.send('エラー：商品が見つかりません');
+    }
+
+    // 2. 判定ロジック
+    if (item.stock <= 0) {
+      return res.send('エラー：売り切れです！');
+    }
+    if (inputMoney < item.price) {
+      return res.send(`お金が足りません（価格: ${item.price}円 / 投入: ${inputMoney}円）`);
+    }
+
+    // 3. 購入成功の処理
+    const change = inputMoney - item.price; // お釣り
+
+    // 在庫を1減らす
+    db.run('UPDATE items SET stock = stock - 1 WHERE id = ?', [itemId], (err) => {
+      // 売上テーブルに記録 (Cさんと連携)
+      const now = new Date().toLocaleString('ja-JP');
+      db.run('INSERT INTO sales (item_id, sold_at) VALUES (?, ?)', [itemId, now], (err) => {
+        // 結果画面を表示（簡易的に文字だけで返す）
+        res.send(`
+          <div style="text-align:center; margin-top: 50px;">
+            <h1>ガシャン！</h1>
+            <p style="font-size:20px;"><b>${item.name}</b> を購入しました。</p>
+            <p>お釣りは <b>${change}円</b> です。</p>
+            <a href="/">自販機に戻る</a>
+          </div>
+        `);
+      });
+    });
+  });
 });
 
 // --- 【Cさん担当エリア】（売上管理） ---
 // 売上履歴の表示
 app.get('/sales', (req, res) => {
-  // salesテーブルとitemsテーブルを結合(JOIN)して取得するとベスト
+  // salesテーブルとitemsテーブルを結合(JOIN)して取得
   db.all(
     `
     SELECT sales.sold_at, items.name, items.price 
