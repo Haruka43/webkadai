@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>自動販売機</title>
+  </head>
+  <body>
+    <h1>🥤 自販機アプリ</h1>
+    <a href="/admin">管理者画面へ</a> | <a href="/sales">売上管理へ</a>
+    <hr />
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px">
+      <% items.forEach(item => { %>
+      <div style="border: 1px solid #333; padding: 10px; text-align: center">
+        <img src="/images/<%= item.image %>" width="100" /><br />
+
+        <h3><%= item.name %></h3>
+        <p>価格: <%= item.price %>円</p>
+
+        <% if (item.stock > 0) { %>
+        <p>在庫: <%= item.stock %></p>
+        <form action="/purchase/<%= item.id %>" method="POST">
+          <input type="number" name="money" placeholder="投入金額" required />
+          <button type="submit">購入</button>
+        </form>
+        <% } else { %>
+        <p style="color: red; font-weight: bold">売切</p>
+        <% } %>
+      </div>
+      <% }) %>
+    </div>
+  </body>
+</html>

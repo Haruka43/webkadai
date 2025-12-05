@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>売上管理</title>
+  </head>
+  <body>
+    <h1>💰 売上履歴</h1>
+    <a href="/">← 自販機に戻る</a>
+    <hr />
+
+    <table border="1">
+      <tr>
+        <th>販売日時</th>
+        <th>商品名</th>
+        <th>売上金額</th>
+      </tr>
+      <% sales.forEach(sale => { %>
+      <tr>
+        <td><%= sale.sold_at %></td>
+        <td><%= sale.name %></td>
+        <td><%= sale.price %>円</td>
+      </tr>
+      <% }) %>
+    </table>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>商品管理</title>
+  </head>
+  <body>
+    <h1>🛠 商品管理（在庫補充）</h1>
+    <a href="/">← 自販機に戻る</a>
+    <hr />
+
+    <table border="1">
+      <tr>
+        <th>ID</th>
+        <th>商品名</th>
+        <th>現在の在庫</th>
+        <th>操作</th>
+      </tr>
+      <% items.forEach(item => { %>
+      <tr>
+        <td><%= item.id %></td>
+        <td><%= item.name %></td>
+        <td><%= item.stock %> 個</td>
+        <td>
+          <form action="/admin/restock/<%= item.id %>" method="POST">
+            <button type="submit">在庫＋10 補充</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </table>
+  </body>
+</html>
