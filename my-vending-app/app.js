@@ -25,18 +25,29 @@ db.serialize(() => {
     sold_at TEXT
   )`);
 
-  // --- 初期データ投入（テスト用） ---
+  // --- 初期データ投入 ---
+  // データが空っぽなら、画像付きの商品を一気に入れる
   db.get('SELECT count(*) as count FROM items', (err, row) => {
     if (row.count === 0) {
-      db.run(`INSERT INTO items (name, price, stock, image) VALUES ('コーラ', 150, 5, 'cola.png')`);
-      db.run(`INSERT INTO items (name, price, stock, image) VALUES ('お茶', 120, 5, 'tea.png')`);
-      console.log('初期データを投入しました');
+      const sql = 'INSERT INTO items (name, price, stock, image) VALUES (?, ?, ?, ?)';
+
+      // ここで商品名と画像ファイル名を紐付けています
+      db.run(sql, ['コーラ', 150, 5, 'drink_cola_petbottle.png']);
+      db.run(sql, ['ジャスミン茶', 120, 5, 'drink_tea_jasmine.png']);
+      db.run(sql, ['コーヒー', 130, 5, 'drink_petbottle_coffee.png']);
+      db.run(sql, ['桃ジュース', 160, 5, 'momojuice.jpeg']);
+      db.run(sql, ['乳酸菌飲料', 140, 5, 'drink_nyuusankin.jpg']);
+      db.run(sql, ['ひやしあめ', 110, 5, 'hiyashiame.jpg']);
+      db.run(sql, ['お水', 100, 5, 'drink_petbottle_tsumetai.png']);
+      db.run(sql, ['ホットティー', 120, 5, 'drink_petbottle_attakai.png']);
+
+      console.log('新しい商品データを投入しました');
     }
   });
 });
 
 // ============================================================
-// ここから下をチームで分担して記述します
+// ここから下は変更なし（機能部分）
 // ============================================================
 
 // --- 【Bさん担当エリア】（商品管理） ---
@@ -60,7 +71,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// ★修正ポイント：購入処理★
+// 購入処理
 app.post('/purchase/:id', (req, res) => {
   const itemId = req.params.id;
   const inputMoney = parseInt(req.body.money);
@@ -84,10 +95,10 @@ app.post('/purchase/:id', (req, res) => {
 
     // 在庫を1減らす
     db.run('UPDATE items SET stock = stock - 1 WHERE id = ?', [itemId], (err) => {
-      // 売上テーブルに記録 (Cさんと連携)
+      // 売上テーブルに記録
       const now = new Date().toLocaleString('ja-JP');
       db.run('INSERT INTO sales (item_id, sold_at) VALUES (?, ?)', [itemId, now], (err) => {
-        // ★ここが変わりました！ result.ejs を表示します
+        // 結果画面を表示
         res.render('result', { item: item, change: change });
       });
     });
