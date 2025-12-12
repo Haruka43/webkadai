@@ -6,112 +6,29 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <div class="vending-machine">
-      <div class="machine-header">
-        🥤 DRINK STATION
-        <div class="header-links"><a href="/admin">管理者設定</a> | <a href="/sales">売上データ</a></div>
+    <h1>🥤 自販機アプリ</h1>
+    <a href="/admin">管理者画面へ</a> | <a href="/sales">売上管理へ</a>
+    <hr />
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px">
+      <% items.forEach(item => { %>
+      <div style="border: 1px solid #333; padding: 10px; text-align: center">
+        <img src="/images/<%= item.image %>" width="100" /><br />
+
+        <h3><%= item.name %></h3>
+        <p>価格: <%= item.price %>円</p>
+
+        <% if (item.stock > 0) { %>
+        <p>在庫: <%= item.stock %></p>
+        <form action="/purchase/<%= item.id %>" method="POST">
+          <input type="number" name="money" placeholder="投入金額" required />
+          <button type="submit">購入</button>
+        </form>
+        <% } else { %>
+        <p style="color: red; font-weight: bold">売切</p>
+        <% } %>
       </div>
-
-      <div class="display-window">
-        <% items.forEach(item => { %>
-        <div class="item-card">
-          <div class="drink-stage">
-            <img src="/images/<%= item.image %>" />
-          </div>
-
-          <div class="price-tag"><%= item.price %>円</div>
-
-          <% if (item.stock > 0) { %>
-          <form action="/purchase/<%= item.id %>" method="POST" id="form-<%= item.id %>">
-            <input type="hidden" name="money" class="money-input" value="0" />
-
-            <button
-              type="button"
-              class="btn-buy"
-              id="btn-<%= item.id %>"
-              data-price="<%= item.price %>"
-              onclick="buyItem('<%= item.id %>')"
-            >
-              購入
-            </button>
-          </form>
-          <% } else { %>
-          <div class="sold-out-overlay">売切</div>
-          <% } %>
-        </div>
-        <% }) %>
-      </div>
-
-      <div class="control-panel">
-        <div>
-          <div style="color: white; font-size: 12px">投入金額</div>
-          <div class="digital-display" id="display-money">0</div>
-          <div style="margin-top: 5px">
-            <button onclick="resetMoney()" style="font-size: 10px; cursor: pointer">返却（リセット）</button>
-          </div>
-        </div>
-
-        <div class="coin-slot">
-          <button class="coin-btn coin-10" onclick="insertCoin(10)">10</button>
-          <button class="coin-btn coin-50" onclick="insertCoin(50)">50</button>
-          <button class="coin-btn coin-100" onclick="insertCoin(100)">100</button>
-          <button class="coin-btn coin-500" onclick="insertCoin(500)">500</button>
-        </div>
-      </div>
+      <% }) %>
     </div>
-
-    <script>
-      // 現在の投入金額
-      let currentMoney = 0;
-
-      // コインを入れた時の処理
-      function insertCoin(amount) {
-        currentMoney += amount;
-        updateDisplay();
-      }
-
-      // 返却ボタンを押した時の処理
-      function resetMoney() {
-        currentMoney = 0;
-        updateDisplay();
-      }
-
-      // 画面の更新と、ボタンの点灯チェック
-      function updateDisplay() {
-        // 1. 画面の数字を更新
-        document.getElementById('display-money').innerText = currentMoney;
-
-        // 2. 全商品のボタンをチェック
-        // （値段以上にお金が入っていたら青く光らせる）
-        const buttons = document.querySelectorAll('.btn-buy');
-
-        buttons.forEach((btn) => {
-          const price = parseInt(btn.dataset.price); // ボタンに埋め込んだ値段を読む
-
-          if (currentMoney >= price) {
-            btn.classList.add('active'); // 光らせるクラスをつける
-            btn.disabled = false; // 押せるようにする
-          } else {
-            btn.classList.remove('active'); // 光を消す
-            btn.disabled = true; // 押せないようにする
-          }
-        });
-
-        // 3. 隠れている入力欄にも金額をセットする（サーバーに送るため）
-        const inputs = document.querySelectorAll('.money-input');
-        inputs.forEach((input) => {
-          input.value = currentMoney;
-        });
-      }
-
-      // 購入ボタンを押した時
-      function buyItem(id) {
-        // フォームを送信してサーバーに「買ったよ！」と伝える
-        document.getElementById('form-' + id).submit();
-      }
-
-      // 最初に一回画面をリセット
-      updateDisplay();
-    </script>
   </body>
 </html>
