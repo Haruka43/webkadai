@@ -6,29 +6,182 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <h1>🥤 自販機アプリ</h1>
-    <a href="/admin">管理者画面へ</a> | <a href="/sales">売上管理へ</a>
-    <hr />
+    <header class="page-header">
+      <h1>🥤 自販機アプリ</h1>
+      <nav class="links"><a href="/admin">管理者画面へ</a> | <a href="/sales">売上管理へ</a></nav>
+    </header>
 
-    <div style="display: flex; flex-wrap: wrap; gap: 20px">
-      <% items.forEach(item => { %>
-      <div style="border: 1px solid #333; padding: 10px; text-align: center">
-        <img src="/images/<%= item.image %>" width="100" /><br />
+    <main class="vending-machine">
+      <div class="machine-frame">
+        <div class="machine">
+          <div class="control-panel">
+            <div class="coin-slot">●●</div>
+            <div class="display">
+              <div class="display-title">投入金額</div>
+              <div id="display-money" class="display-amount">0 円</div>
+            </div>
+            <div class="coins">
+              <button type="button" class="coin-btn" data-value="10">+10円</button>
+              <button type="button" class="coin-btn" data-value="50">+50円</button>
+              <button type="button" class="coin-btn" data-value="100">+100円</button>
+              <button type="button" class="coin-btn" data-value="500">+500円</button>
+              <button type="button" id="reset-money" class="coin-reset">返却</button>
+            </div>
+            <div class="dispense">※購入ボタンを押すと投入金額が使われます</div>
+          </div>
 
-        <h3><%= item.name %></h3>
-        <p>価格: <%= item.price %>円</p>
+          <div class="glass-front"></div>
+          <div class="product-grid">
+            <% items.forEach(item => { %>
+            <div class="slot <%= item.stock > 0 ? '' : 'sold-out' %>">
+              <div class="slot-inner">
+                <div class="slot-img"><img src="/images/<%= item.image %>" alt="<%= item.name %>" /></div>
+                <div class="slot-info">
+                  <div class="slot-name"><%= item.name %></div>
+                  <div class="slot-price"><%= item.price %>円</div>
+                  <% if (item.stock > 0) { %>
+                  <div class="slot-stock">在庫: <%= item.stock %></div>
+                  <form
+                    class="purchase-form"
+                    data-price="<%= item.price %>"
+                    action="/purchase/<%= item.id %>"
+                    method="POST"
+                  >
+                    <input type="hidden" name="money" value="0" />
+                    <button type="submit" class="buy-btn">購入</button>
+                  </form>
+                  <% } else { %>
+                  <div class="sold-text">売切</div>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+            <% }) %>
+          </div>
 
-        <% if (item.stock > 0) { %>
-        <p>在庫: <%= item.stock %></p>
-        <form action="/purchase/<%= item.id %>" method="POST">
-          <input type="number" name="money" placeholder="投入金額" required />
-          <button type="submit">購入</button>
-        </form>
-        <% } else { %>
-        <p style="color: red; font-weight: bold">売切</p>
-        <% } %>
+          <div id="tray" class="tray">　</div>
+        </div>
       </div>
-      <% }) %>
-    </div>
+    </main>
+
+    <script>
+      (function () {
+        let money = 0;
+        const display = document.getElementById('display-money');
+        const coinButtons = document.querySelectorAll('.coin-btn');
+        const resetBtn = document.getElementById('reset-money');
+        const forms = document.querySelectorAll('.purchase-form');
+        const tray = document.getElementById('tray');
+
+        function updateDisplay() {
+          display.textContent = money + ' 円';
+        }
+
+        function createFloatingText(text, x, y) {
+          const el = document.createElement('div');
+          el.className = 'floating-return';
+          el.textContent = text;
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          document.body.appendChild(el);
+          requestAnimationFrame(() => el.classList.add('visible'));
+          setTimeout(() => el.classList.remove('visible'), 1200);
+          setTimeout(() => el.remove(), 1600);
+        }
+
+        coinButtons.forEach((btn) => {
+          btn.addEventListener('click', function () {
+            money += Number(this.dataset.value);
+            updateDisplay();
+          });
+        });
+
+        resetBtn.addEventListener('click', function (e) {
+          const refund = money;
+          if (refund <= 0) return;
+          // show floating animation near coin slot
+          const slotRect = document.querySelector('.coin-slot').getBoundingClientRect();
+          createFloatingText('返却: ' + refund + '円', slotRect.left, slotRect.top - 24);
+
+          money = 0;
+          updateDisplay();
+        });
+
+        forms.forEach((form) => {
+          const btn = form.querySelector('.buy-btn');
+          const slot = form.closest('.slot');
+          if (slot && slot.classList.contains('sold-out')) {
+            if (btn) btn.disabled = true;
+            return;
+          }
+
+          form.addEventListener('submit', function (e) {
+            const price = Number(form.dataset.price || 0);
+            if (money < price) {
+              e.preventDefault();
+              alert('投入金額が不足しています');
+              return;
+            }
+
+            e.preventDefault();
+
+            // Animate the item image to the tray
+            const img = slot.querySelector('.slot-img img');
+            const imgRect = img.getBoundingClientRect();
+            const trayRect = tray.getBoundingClientRect();
+
+            const clone = img.cloneNode();
+            clone.style.position = 'fixed';
+            clone.style.left = imgRect.left + 'px';
+            clone.style.top = imgRect.top + 'px';
+            clone.style.width = imgRect.width + 'px';
+            clone.style.height = imgRect.height + 'px';
+            clone.style.transition = 'all 600ms cubic-bezier(.2,.8,.2,1)';
+            clone.style.zIndex = '1000';
+            document.body.appendChild(clone);
+
+            // Force repaint
+            void clone.offsetWidth;
+
+            const deltaX = trayRect.left + trayRect.width / 2 - (imgRect.left + imgRect.width / 2);
+            const deltaY = trayRect.top + trayRect.height / 2 - (imgRect.top + imgRect.height / 2);
+
+            clone.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.4)`;
+            clone.style.opacity = '0.9';
+
+            // Disable buttons while animating
+            document.querySelectorAll('.buy-btn').forEach((b) => (b.disabled = true));
+            document.querySelectorAll('.coin-btn').forEach((b) => (b.disabled = true));
+            resetBtn.disabled = true;
+
+            setTimeout(() => {
+              // Remove clone, reduce money, submit with hidden value
+              clone.remove();
+
+              money -= price;
+              updateDisplay();
+
+              let hidden = form.querySelector('input[name="money"]');
+              if (!hidden) {
+                hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'money';
+                form.appendChild(hidden);
+              }
+              hidden.value = money + price; // pass original money to server
+
+              // re-enable
+              document.querySelectorAll('.buy-btn').forEach((b) => (b.disabled = false));
+              document.querySelectorAll('.coin-btn').forEach((b) => (b.disabled = false));
+              resetBtn.disabled = false;
+
+              form.submit();
+            }, 700);
+          });
+        });
+
+        updateDisplay();
+      })();
+    </script>
   </body>
 </html>
