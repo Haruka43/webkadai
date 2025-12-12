@@ -156,15 +156,33 @@ button:hover {
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-auto-flow: column;
+  grid-template-rows: repeat(4, auto);
   gap: 18px;
+  justify-content: center;
   flex: 1;
+}
+@media (max-width: 1100px) {
+  .product-grid {
+    grid-template-rows: repeat(3, auto);
+  }
+}
+@media (max-width: 900px) {
+  .product-grid {
+    grid-template-rows: repeat(3, auto);
+  }
+}
+@media (max-width: 560px) {
+  .product-grid {
+    grid-template-rows: repeat(2, auto);
+  }
 }
 .slot {
   background: linear-gradient(180deg, #fff 0%, #f4f6fb 100%);
   border-radius: 10px;
   border: 2px solid #ddd;
   padding: 8px;
+  width: 180px;
   display: flex;
 }
 .slot-inner {
@@ -189,6 +207,23 @@ button:hover {
 .slot-info {
   text-align: left;
   flex: 1;
+}
+.slot-number {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+.placeholder .slot-name::after {
+  content: ' (サンプル)';
+  color: #7c3aed;
+  font-size: 12px;
+  font-weight: 600;
+}
+.placeholder .slot-price {
+  color: #94a3b8;
+}
+.placeholder .slot-stock {
+  display: none;
 }
 .slot-name {
   font-weight: bold;

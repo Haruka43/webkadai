@@ -2,8 +2,11 @@ const express = require('express');
 const app = express();
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('mydata.db');
+const fs = require('fs');
+const path = require('path');
 
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 app.use(express.static('public')); // publicフォルダの画像などを使えるようにする
 app.use(express.urlencoded({ extended: true })); // フォームのデータを受け取れるようにする
 
@@ -66,8 +69,36 @@ app.post('/admin/restock/:id', (req, res) => {
 
 // --- 【Aさん担当エリア】（購入画面） ---
 app.get('/', (req, res) => {
+  const imagesDir = path.join(__dirname, 'public', 'images');
+  let allImages = [];
+  try {
+    allImages = fs.readdirSync(imagesDir).filter((f) => /\.(png|jpe?g|gif|webp|svg)$/i.test(f));
+  } catch (e) {
+    allImages = [];
+  }
+  console.log('imagesDir:', imagesDir);
+  console.log('allImages count:', allImages.length);
+
   db.all('SELECT * FROM items', (err, rows) => {
-    res.render('index', { items: rows });
+    const map = {};
+    (rows || []).forEach((r) => {
+      map[r.image] = r;
+    });
+
+    const itemsList = allImages.map((img) => {
+      if (map[img]) return map[img];
+      const name = img.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ');
+      return {
+        id: null,
+        name: name,
+        price: null,
+        stock: 0,
+        image: img,
+        placeholder: true
+      };
+    });
+
+    res.render('index', { items: itemsList });
   });
 });
 

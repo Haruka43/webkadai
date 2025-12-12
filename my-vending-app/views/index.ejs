@@ -32,14 +32,15 @@
 
           <div class="glass-front"></div>
           <div class="product-grid">
-            <% items.forEach(item => { %>
-            <div class="slot <%= item.stock > 0 ? '' : 'sold-out' %>">
+            <% items.forEach((item, idx) => { %>
+            <div class="slot <%= item.stock > 0 ? '' : 'sold-out' %> <%= item.placeholder ? 'placeholder' : '' %>">
               <div class="slot-inner">
                 <div class="slot-img"><img src="/images/<%= item.image %>" alt="<%= item.name %>" /></div>
                 <div class="slot-info">
+                  <div class="slot-number">#<%= idx + 1 %></div>
                   <div class="slot-name"><%= item.name %></div>
-                  <div class="slot-price"><%= item.price %>円</div>
-                  <% if (item.stock > 0) { %>
+                  <div class="slot-price"><%= item.price ? item.price + '円' : '-' %></div>
+                  <% if (item.id && item.stock > 0) { %>
                   <div class="slot-stock">在庫: <%= item.stock %></div>
                   <form
                     class="purchase-form"
@@ -50,6 +51,8 @@
                     <input type="hidden" name="money" value="0" />
                     <button type="submit" class="buy-btn">購入</button>
                   </form>
+                  <% } else if (item.placeholder) { %>
+                  <div class="sold-text">非売品</div>
                   <% } else { %>
                   <div class="sold-text">売切</div>
                   <% } %>
